@@ -61,17 +61,53 @@ void main() {
   vec3 n;
 
   if (uMapping == 0) {
-    // Bump mapping: tilt the normal against the gradient of the height field
-    vec2 du = vec2(1.0 / float(textureSize(uTexture, 0).x), 0.0);
-    vec2 dv = vec2(0.0, 1.0 / float(textureSize(uTexture, 0).y));
-    float dhdu = (height(vTexCoord + du) - height(vTexCoord - du)) * 0.5;
-    float dhdv = (height(vTexCoord + dv) - height(vTexCoord - dv)) * 0.5;
-    n = normalize(vec3(-bumpScale * dhdu, -bumpScale * dhdv, 1.0));
+
+    // BUMP MAPPING
+
+    vec2 du = vec2(
+        1.0 / float(textureSize(uTexture, 0).x), 0.0
+    );
+
+    vec2 dv = vec2(
+        0.0, 1.0 / float(textureSize(uTexture, 0).y)
+    );
+
+    float dhdu =
+        (height(vTexCoord + du) -
+         height(vTexCoord - du)) * 0.5;
+
+    float dhdv =
+        (height(vTexCoord + dv) -
+         height(vTexCoord - dv)) * 0.5;
+
+    n = normalize(vec3(
+        -bumpScale * dhdu,
+        -bumpScale * dhdv,
+        1.0
+    ));
+
     baseColor = texture(uTexture, vTexCoord).rgb;
-  } else {
-    // Normal mapping: the texture stores the tangent-space normal in [0, 1]
-    n = normalize(texture(uTexture, vTexCoord).rgb * 2.0 - 1.0);
-    baseColor = vec3(0.85, 0.65, 0.3);
+
+  }
+  else if (uMapping == 1) {
+
+      // NORMAL MAPPING
+
+      n = normalize(
+          texture(uTexture, vTexCoord).rgb * 2.0 - 1.0
+      );
+
+      baseColor = vec3(0.85, 0.65, 0.3);
+
+  }
+  else {
+
+      // REGULAR ANIMATED VIDEO TEXTURE
+
+      n = vec3(0.0, 0.0, 1.0);
+
+      baseColor = texture(uTexture, vTexCoord).rgb;
+
   }
 
   vec3 Ka = 0.2 * baseColor;
@@ -188,16 +224,101 @@ function loadTexture(url) {
 
 const brickTexture = loadTexture("brick.png");
 const normalTexture = loadTexture("texture2.jpg");
-const barKTexture = loadTexture("bark_brown_02_diff_4k.jpg");
+const barKTexture = loadTexture("bark_brown_02_disp_4k.png");
 const concreteTexture = loadTexture("rebar_reinforced_concrete_diff_4k.jpg");
 
-const BUMP_MAPPING = 0, NORMAL_MAPPING = 1;
+const BUMP_MAPPING = 0;
+const NORMAL_MAPPING = 1;
+const VIDEO_TEXTURE = 2;
+
 const objects = [
-  { mesh: cubeMesh, texture: brickTexture, mapping: BUMP_MAPPING, offset: [-1.8, 0, 0] },
-  { mesh: cylinderMesh, texture: normalTexture, mapping: NORMAL_MAPPING, offset: [1.8, 0, 0] },
-  { mesh: sphereMesh, texture: barKTexture, mapping: BUMP_MAPPING, offset: [-1.8, -3, 0]},
-  { mesh: coneMesh, texture: concreteTexture, mapping: BUMP_MAPPING, offset: [1.8, -3, 0]}
+  {
+    mesh: cubeMesh,
+    texture: brickTexture,
+    mapping: BUMP_MAPPING,
+    offset: [-4, 0, 0]
+  },
+  {
+    mesh: cylinderMesh,
+    texture: normalTexture,
+    mapping: NORMAL_MAPPING,
+    offset: [-2, 0, 0]
+  },
+  {
+    mesh: sphereMesh,
+    texture: barKTexture,
+    mapping: BUMP_MAPPING,
+    offset: [0, 0, 0]
+  },
+  {
+    mesh: coneMesh,
+    texture: concreteTexture,
+    mapping: NORMAL_MAPPING,
+    offset: [2, 0, 0]
+  },
+  {
+    mesh: torusMesh,
+    texture: null, // Assigned below
+    mapping: VIDEO_TEXTURE,
+    offset: [4, 0, 0]
+  }
 ];
+
+const wormholeVideo = document.createElement("video");
+
+wormholeVideo.src =
+  "mixkit-worm-hole-seen-inside-18791-hd-ready.mp4";
+
+wormholeVideo.loop = true;
+wormholeVideo.muted = true;
+wormholeVideo.autoplay = true;
+wormholeVideo.playsInline = true;
+
+const videoTexture = gl.createTexture();
+
+gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+
+gl.texImage2D(
+  gl.TEXTURE_2D,
+  0,
+  gl.RGBA,
+  1,
+  1,
+  0,
+  gl.RGBA,
+  gl.UNSIGNED_BYTE,
+  new Uint8Array([0, 0, 0, 255])
+);
+
+gl.texParameteri(
+  gl.TEXTURE_2D,
+  gl.TEXTURE_MIN_FILTER,
+  gl.LINEAR
+);
+
+gl.texParameteri(
+  gl.TEXTURE_2D,
+  gl.TEXTURE_MAG_FILTER,
+  gl.LINEAR
+);
+
+gl.texParameteri(
+  gl.TEXTURE_2D,
+  gl.TEXTURE_WRAP_S,
+  gl.CLAMP_TO_EDGE
+);
+
+gl.texParameteri(
+  gl.TEXTURE_2D,
+  gl.TEXTURE_WRAP_T,
+  gl.CLAMP_TO_EDGE
+);
+
+wormholeVideo.addEventListener("canplay", () => {
+  wormholeVideo.play().catch(console.error);
+});
+
+objects[4].texture = videoTexture;
 
 gl.enable(gl.DEPTH_TEST);
 gl.clearColor(0, 0, 0, 1);
@@ -206,7 +327,7 @@ const lightWorld = [3, 4, 5];
 
 // Interactive controls
 let dragRotX = 0, dragRotY = -0.5;      // mouse drag
-let camX = 0, camY = 0, camZ = -7;      // arrow keys, w, s
+let camX = 0, camY = 0, camZ = -12;      // arrow keys, w, s
 let sliderAngle = 0;                    // degrees
 let spinning = false, spinAngle = 0;    // Start/Stop button
 
@@ -249,6 +370,24 @@ function render(time) {
   if (spinning) spinAngle += t - lastTime;
   lastTime = t;
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  // Update the animated video texture
+  if (wormholeVideo.readyState >= wormholeVideo.HAVE_CURRENT_DATA) {
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, videoTexture);
+
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        wormholeVideo
+    );
+  }
 
   const view = translate(camX, camY, camZ);
   gl.uniformMatrix4fv(uProjection, false, projection);
