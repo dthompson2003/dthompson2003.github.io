@@ -224,8 +224,8 @@ function loadTexture(url) {
 
 const brickTexture = loadTexture("brick.png");
 const normalTexture = loadTexture("texture2.jpg");
-const barKTexture = loadTexture("bark_brown_02_disp_4k.png");
-const concreteTexture = loadTexture("rebar_reinforced_concrete_diff_4k.jpg");
+const barKTexture = loadTexture("bark_brown_02_diff_4k.jpg");
+const normalTexture2 = loadTexture("textures-normal-new.jpg");
 
 const BUMP_MAPPING = 0;
 const NORMAL_MAPPING = 1;
@@ -242,25 +242,25 @@ const objects = [
     mesh: cylinderMesh,
     texture: normalTexture,
     mapping: NORMAL_MAPPING,
-    offset: [-2, 0, 0]
+    offset: [-1, 0, 0]
   },
   {
     mesh: sphereMesh,
     texture: barKTexture,
     mapping: BUMP_MAPPING,
-    offset: [0, 0, 0]
+    offset: [2, 0, 0]
   },
   {
     mesh: coneMesh,
-    texture: concreteTexture,
+    texture: normalTexture2,
     mapping: NORMAL_MAPPING,
-    offset: [2, 0, 0]
+    offset: [-3, -3, 0]
   },
   {
     mesh: torusMesh,
     texture: null, // Assigned below
     mapping: VIDEO_TEXTURE,
-    offset: [4, 0, 0]
+    offset: [2, -3, 0]
   }
 ];
 
